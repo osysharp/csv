@@ -1,0 +1,67 @@
+// CSV as spreadsheets write it and read it.
+using Osysharp.Csv;
+
+/// What a Swedish Excel saves: `;` between fields (the comma is the decimal point), a byte-order mark, CRLF, a quoted
+/// field holding the separator, a doubled quote and a line break — read back field for field.
+[Test]
+void a_file_excel_saved_is_read_field_for_field() {
+  var text = "﻿SKU;Name;Price\r\nGG-1;\"Kiambu AA; washed\";165,00\r\nGG-2;\"The \"\"house\"\" blend\nline two\";149\r\n\r\n";
+  var t = ReadCsv(text);
+  Assert.Equal(";", t.Separator);
+  Assert.Equal(3, t.Header.Count);
+  Assert.Equal("SKU", t.Header[0]);
+  Assert.Equal(2, t.Rows.Count);
+  Assert.Equal("Kiambu AA; washed", t.Get(t.Rows[0], "name"));
+  Assert.Equal("165,00", t.Get(t.Rows[0], "Price"));
+  Assert.Equal("The \"house\" blend\nline two", t.Get(t.Rows[1], "Name"));
+  Assert.Equal(2, t.Rows[0].Line);
+  Assert.Equal(3, t.Rows[1].Line);
+  Assert.Equal("", t.Get(t.Rows[0], "Colour"));
+}
+
+/// What CSV this writes is what it reads: a comma file with a mark, CRLF, quoting only where needed.
+[Test]
+void what_is_written_reads_back_the_same() {
+  List<List<string>> rows = [["GG-1", "Kiambu AA, washed", "165"], ["GG-2", "Say \"hi\"", "149"], ["GG-3", "two\nlines", ""]];
+  var text = WriteCsv(["SKU", "Name", "Price"], rows);
+  Assert.True(text.StartsWith("﻿SKU,Name,Price\r\n"));
+  Assert.Contains("GG-1,\"Kiambu AA, washed\",165\r\n", text);
+  var t = ReadCsv(text);
+  Assert.Equal(",", t.Separator);
+  Assert.Equal(3, t.Rows.Count);
+  for (var r = 0; r < 3; r++) {
+    for (var f = 0; f < 3; f++) { Assert.Equal(rows[r][f], t.Rows[r].Fields[f]); }
+  }
+}
+
+/// A cell that would run as a formula when the file is opened is written as text — and comes back as it was. A
+/// negative number is a number, and is left alone.
+[Test]
+void a_formula_is_written_as_text_and_a_number_is_not() {
+  var text = WriteCsv(["Name", "Delta"], [["=HYPERLINK(\"http://evil.example\",\"Click\")", "-5"], ["@SUM(A1)", "+3.5"], ["- on sale", "0"]]);
+  Assert.Contains("\"'=HYPERLINK(\"\"http://evil.example\"\",\"\"Click\"\")\",-5", text);
+  Assert.Contains("'@SUM(A1),+3.5", text);
+  Assert.Contains("'- on sale,0", text);
+  var t = ReadCsv(text);
+  Assert.Equal("=HYPERLINK(\"http://evil.example\",\"Click\")", t.Rows[0].Fields[0]);
+  Assert.Equal("-5", t.Rows[0].Fields[1]);
+  Assert.Equal("@SUM(A1)", t.Rows[1].Fields[0]);
+  Assert.Equal("- on sale", t.Rows[2].Fields[0]);
+}
+
+/// The empty rows a spreadsheet saves under a table (`,,,`) are not rows.
+[Test]
+void empty_rows_under_the_table_are_skipped() {
+  var t = ReadCsv("SKU,Stock\r\nGG-1,12\r\n,\r\n , \r\nGG-2,0\r\n,\r\n");
+  Assert.Equal(2, t.Rows.Count);
+  Assert.Equal("GG-2", t.Rows[1].Fields[0]);
+  Assert.Equal(5, t.Rows[1].Line);
+}
+
+/// A tab-separated paste (what copying cells out of a spreadsheet gives) is read too.
+[Test]
+void a_tab_separated_paste_is_read() {
+  var t = ReadCsv("SKU\tStock\nGG-1\t12\nGG-2\t0");
+  Assert.Equal("\t", t.Separator);
+  Assert.Equal("0", t.Get(t.Rows[1], "stock"));
+}

@@ -1,0 +1,9 @@
+// Osysharp.Csv — spreadsheets in and out: RFC 4180 CSV written so Excel, Numbers and Google Sheets open it the same
+// way everywhere, and read back from whatever those programs save. Plain Osy#, no capability, no egress.
+package Osysharp.Csv {
+  version     "0.1.0";
+  minPlatform "0.9.0";
+  summary     "CSV in and out — quoted fields, Excel's separators and byte-order mark, formula-safe cells.";
+  model "model/*.osy";
+  tests "tests";
+}

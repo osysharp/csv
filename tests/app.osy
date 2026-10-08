@@ -1,0 +1,5 @@
+// The producer's test project for Osysharp.Csv.
+app CsvKitTests {
+  tests "**/*.test.osy";
+  use Osysharp.Csv@0;
+}
