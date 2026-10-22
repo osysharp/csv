@@ -50,6 +50,7 @@ public class CsvRow {
 /// Reads CSV text. The separator is detected from the header line (`,` `;` or tab — whichever occurs most outside
 /// quotes); quoted fields may hold separators, doubled quotes and line breaks; a byte-order mark is dropped, CRLF and LF
 /// both end a line, and a cell written formula-safe (`'=…`) comes back as written.
+/// need: import records from a CSV, read the rows of a spreadsheet someone uploaded
 public CsvTable ReadCsv(string text) {
   var table = new CsvTable();
   var body = text.StartsWith("﻿") ? text.Substring(1) : text;
@@ -111,6 +112,7 @@ public CsvTable ReadCsv(string text) {
 
 /// Writes a header and rows as CSV a spreadsheet opens as it is: a byte-order mark, CRLF line ends, a field quoted
 /// only when it must be, and a value that would run as a formula written as text.
+/// need: export a list as CSV, download a spreadsheet of rows
 public string WriteCsv(List<string> header, List<List<string>> rows, string separator = ",") {
   var text = "﻿" + CsvLine(header, separator);
   foreach (var row in rows) { text = text + CsvLine(row, separator); }
